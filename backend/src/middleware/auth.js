@@ -2,8 +2,9 @@ const jwt = require('jsonwebtoken');
 
 const DEVELOPMENT_SECRET = 'dev-secret-change-me';
 const JWT_SECRET = process.env.JWT_SECRET || DEVELOPMENT_SECRET;
+const INSECURE_SECRETS = new Set([DEVELOPMENT_SECRET, 'change-this-in-production']);
 
-if (process.env.NODE_ENV === 'production' && JWT_SECRET === DEVELOPMENT_SECRET) {
+if (process.env.NODE_ENV === 'production' && INSECURE_SECRETS.has(JWT_SECRET)) {
   throw new Error('JWT_SECRET must be configured with a strong value in production.');
 }
 
