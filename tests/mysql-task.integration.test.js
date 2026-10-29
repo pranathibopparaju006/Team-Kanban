@@ -4,6 +4,7 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
+const { io } = require('socket.io-client');
 const { JWT_SECRET } = require('../backend/src/middleware/auth');
 
 const PORT = 5274;
@@ -106,4 +107,32 @@ test('invalid task title is rejected before writing to MySQL', async () => {
   assert.equal(response.status, 400);
   const [rows] = await db.execute('SELECT id FROM tasks WHERE title=?', ['   ']);
   assert.equal(rows.length, 0);
+});
+
+
+test('Socket.IO rejects project-room join for a non-member', async () => {
+  const socket = io(`http://127.0.0.1:${PORT}`, {
+    auth: { token: outsiderToken },
+    transports: ['websocket'],
+    reconnection: false,
+    timeout: 3000,
+  });
+  try {
+    await new Promise((resolve, reject) => {
+      socket.once('connect', resolve);
+      socket.once('connect_error', reject);
+    });
+    const denied = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Expected project:error event')), 3000);
+      socket.once('project:error', payload => {
+        clearTimeout(timeout);
+        resolve(payload);
+      });
+    });
+    socket.emit('project:join', 101);
+    const payload = await denied;
+    assert.equal(payload.error, 'Project membership required');
+  } finally {
+    socket.close();
+  }
 });
