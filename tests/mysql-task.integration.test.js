@@ -136,3 +136,33 @@ test('Socket.IO rejects project-room join for a non-member', async () => {
     socket.close();
   }
 });
+
+
+test('project member can update a task and changes persist in MySQL', async () => {
+  const created = await api('/projects/101/tasks', memberToken, { title: 'Task to update' });
+  assert.equal(created.status, 201);
+  const createdBody = await created.json();
+  const response = await fetch(`${BASE}/tasks/${createdBody.id}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${memberToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'done', title: 'Updated task title' }),
+  });
+  assert.equal(response.status, 200);
+  const [rows] = await db.execute('SELECT title,status FROM tasks WHERE id=?', [createdBody.id]);
+  assert.equal(rows[0].title, 'Updated task title');
+  assert.equal(rows[0].status, 'done');
+});
+
+test('non-member cannot update another project task', async () => {
+  const created = await api('/projects/101/tasks', memberToken, { title: 'Protected task' });
+  assert.equal(created.status, 201);
+  const createdBody = await created.json();
+  const response = await fetch(`${BASE}/tasks/${createdBody.id}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${outsiderToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'done' }),
+  });
+  assert.equal(response.status, 403);
+  const [rows] = await db.execute('SELECT status FROM tasks WHERE id=?', [createdBody.id]);
+  assert.equal(rows[0].status, 'todo');
+});
