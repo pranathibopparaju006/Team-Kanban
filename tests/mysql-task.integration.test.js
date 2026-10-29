@@ -180,3 +180,33 @@ test('member role cannot delete a task', async () => {
   const [rows] = await db.execute('SELECT id FROM tasks WHERE id=?', [createdBody.id]);
   assert.equal(rows.length, 1);
 });
+
+test('invalid task status and priority are rejected without database writes', async () => {
+  for (const [title, body] of [
+    ['Invalid status task', { title: 'Invalid status task', status: 'completed' }],
+    ['Invalid priority task', { title: 'Invalid priority task', priority: 'urgent' }],
+  ]) {
+    const response = await api('/projects/101/tasks', memberToken, body);
+    assert.equal(response.status, 400);
+    const [rows] = await db.execute('SELECT id FROM tasks WHERE title=?', [title]);
+    assert.equal(rows.length, 0);
+  }
+});
+
+test('task cannot be assigned to a user outside the project', async () => {
+  const response = await api('/projects/101/tasks', memberToken, {
+    title: 'Invalid assignee task',
+    assignee_id: 2,
+  });
+  assert.equal(response.status, 400);
+  const [rows] = await db.execute('SELECT id FROM tasks WHERE title=?', ['Invalid assignee task']);
+  assert.equal(rows.length, 0);
+});
+
+test('task title longer than 255 characters is rejected without database writes', async () => {
+  const title = 'x'.repeat(256);
+  const response = await api('/projects/101/tasks', memberToken, { title });
+  assert.equal(response.status, 400);
+  const [rows] = await db.execute('SELECT id FROM tasks WHERE title=?', [title]);
+  assert.equal(rows.length, 0);
+});
