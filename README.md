@@ -100,7 +100,7 @@ npm install --no-save --package-lock=false socket.io-client@4.8.1
 npm run check
 ```
 
-The checks validate JavaScript syntax and run middleware unit tests plus live Socket.IO handshake and protected REST-route tests against a locally started server. These tests do not require a live MySQL query for the tested authentication paths. Full task/project workflows still need a configured test database and browser-based end-to-end tests.
+The automated checks include middleware tests, live Socket.IO handshake and protected REST-route tests, plus a MySQL 8-backed integration workflow. The database integration suite verifies task creation and persistence for a project member, rejects task creation by a non-member, and checks invalid-title validation. These tests use an ephemeral CI database; browser-based end-to-end testing of the full UI remains future work.
 
 ## Project Structure
 
