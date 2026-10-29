@@ -61,3 +61,23 @@ test('Socket.IO accepts a valid signed session token', async () => {
   assert.equal(socket.connected, true);
   socket.close();
 });
+
+test('protected REST endpoint rejects requests without a bearer token', async () => {
+  const response = await fetch(`${URL}/api/v1/me`);
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).error, 'Authentication required');
+});
+
+test('protected REST endpoint rejects an invalid bearer token', async () => {
+  const response = await fetch(`${URL}/api/v1/me`, {
+    headers: { Authorization: 'Bearer invalid-token' },
+  });
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).error, 'Invalid or expired token');
+});
+
+test('unknown API routes return JSON 404 responses', async () => {
+  const response = await fetch(`${URL}/api/v1/not-a-real-route`);
+  assert.equal(response.status, 404);
+  assert.equal((await response.json()).error, 'Route not found');
+});
