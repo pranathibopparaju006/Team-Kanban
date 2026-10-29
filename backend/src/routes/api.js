@@ -2,14 +2,14 @@ const express=require('express');
 const bcrypt=require('bcryptjs');
 const jwt=require('jsonwebtoken');
 const db=require('../config/db');
-const {auth,roles}=require('../middleware/auth');
+const {auth,roles,JWT_SECRET}=require('../middleware/auth');
 const {logActivity}=require('../services/activity');
 const router=express.Router();
 const STATUSES=['backlog','todo','in_progress','review','qa','done','blocked'];
 const PRIORITIES=['critical','high','medium','low'];
 
 router.get('/health',async(req,res)=>{try{await db.query('SELECT 1');res.json({success:true,status:'healthy',database:'connected',time:new Date().toISOString()});}catch(e){res.status(503).json({success:false,status:'degraded',database:'unavailable',message:'Check MySQL configuration'});}});
-router.post('/auth/login',async(req,res)=>{const {email,password}=req.body||{}; if(!email||!password)return res.status(400).json({error:'Email and password are required'}); const [rows]=await db.execute('SELECT id,name,email,password_hash,role FROM users WHERE email=? AND is_active=1 LIMIT 1',[email.trim().toLowerCase()]); if(!rows[0]||!(await bcrypt.compare(password,rows[0].password_hash)))return res.status(401).json({error:'Invalid credentials'}); const u=rows[0]; const token=jwt.sign({id:u.id,name:u.name,email:u.email,role:u.role},process.env.JWT_SECRET||'dev-secret-change-me',{expiresIn:'8h'}); res.json({success:true,token,user:{id:u.id,name:u.name,email:u.email,role:u.role}});});
+router.post('/auth/login',async(req,res)=>{const {email,password}=req.body||{}; if(!email||!password)return res.status(400).json({error:'Email and password are required'}); const [rows]=await db.execute('SELECT id,name,email,password_hash,role FROM users WHERE email=? AND is_active=1 LIMIT 1',[email.trim().toLowerCase()]); if(!rows[0]||!(await bcrypt.compare(password,rows[0].password_hash)))return res.status(401).json({error:'Invalid credentials'}); const u=rows[0]; const token=jwt.sign({id:u.id,name:u.name,email:u.email,role:u.role},JWT_SECRET,{expiresIn:'8h'}); res.json({success:true,token,user:{id:u.id,name:u.name,email:u.email,role:u.role}});});
 router.get('/me',auth,(req,res)=>res.json({success:true,user:req.user}));
 router.get('/projects',auth,async(req,res)=>{const [rows]=await db.execute(`SELECT p.*,u.name owner_name,(SELECT COUNT(*) FROM tasks t WHERE t.project_id=p.id) task_count,(SELECT COUNT(*) FROM tasks t WHERE t.project_id=p.id AND t.status='done') done_count FROM projects p JOIN users u ON u.id=p.owner_id JOIN project_members pm ON pm.project_id=p.id AND pm.user_id=? ORDER BY p.updated_at DESC`,[req.user.id]);res.json({success:true,data:rows});});
 router.get('/projects/:id/tasks',auth,async(req,res)=>{const pid=Number(req.params.id); const [rows]=await db.execute(`SELECT t.*,a.name assignee_name,r.name reporter_name,COALESCE((SELECT COUNT(*) FROM subtasks s WHERE s.task_id=t.id),0) subtask_count,COALESCE((SELECT COUNT(*) FROM subtasks s WHERE s.task_id=t.id AND s.is_done=1),0) subtask_done FROM tasks t LEFT JOIN users a ON a.id=t.assignee_id JOIN users r ON r.id=t.reporter_id JOIN project_members pm ON pm.project_id=t.project_id AND pm.user_id=? WHERE t.project_id=? ORDER BY FIELD(t.priority,'critical','high','medium','low'),t.created_at DESC`,[req.user.id,pid]);res.json({success:true,data:rows});});
