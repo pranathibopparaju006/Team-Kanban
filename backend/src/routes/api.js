@@ -77,5 +77,21 @@ router.get('/projects/:id/activity',auth,async(req,res)=>{const pid=Number(req.p
 router.get('/projects/:id/analytics',auth,async(req,res)=>{const pid=Number(req.params.id); const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[pid,req.user.id]); if(!membership.length)return res.status(403).json({error:'You are not a member of this project'}); const [[totals]]=await db.execute(`SELECT COUNT(*) total,SUM(status='done') done,SUM(status='in_progress') in_progress,SUM(status='todo') todo,SUM(status='blocked') blocked,SUM(priority='critical') critical,SUM(priority='high') high FROM tasks WHERE project_id=?`,[pid]);const [members]=await db.execute(`SELECT u.name,COUNT(t.id) total,SUM(t.status='done') done FROM project_members pm JOIN users u ON u.id=pm.user_id LEFT JOIN tasks t ON t.assignee_id=u.id AND t.project_id=pm.project_id WHERE pm.project_id=? GROUP BY u.id ORDER BY done DESC,total DESC`,[pid]);res.json({success:true,data:{totals,members}});});
 router.get('/projects/:id/notifications',auth,async(req,res)=>{const [rows]=await db.execute('SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 20',[req.user.id]);res.json({success:true,data:rows});});
 router.get('/projects/:id/comments',auth,async(req,res)=>{const pid=Number(req.params.id); const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[pid,req.user.id]); if(!membership.length)return res.status(403).json({error:'You are not a member of this project'}); const [rows]=await db.execute('SELECT c.*,u.name user_name FROM comments c JOIN users u ON u.id=c.user_id JOIN tasks t ON t.id=c.task_id WHERE t.project_id=? ORDER BY c.created_at DESC LIMIT 50',[Number(req.params.id)]);res.json({success:true,data:rows});});
-router.post('/tasks/:id/comments',auth,async(req,res)=>{const taskId=Number(req.params.id);const body=(req.body?.body||'').trim();if(!body)return res.status(400).json({error:'Comment cannot be empty'});const [[t]]=await db.execute('SELECT project_id,title,assignee_id FROM tasks WHERE id=?',[taskId]);if(!t)return res.status(404).json({error:'Task not found'});const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[t.project_id,req.user.id]);if(!membership.length)return res.status(403).json({error:'You are not a member of this project'});const [r]=await db.execute('INSERT INTO comments(task_id,user_id,body) VALUES(?,?,?)',[taskId,req.user.id,body]);await logActivity({projectId:t.project_id,taskId:Number(req.params.id),userId:req.user.id,action:'comment.created',message:`${req.user.name} commented on “${t.title}”`});if(t.assignee_id&&t.assignee_id!==req.user.id)await db.execute('INSERT INTO notifications(user_id,type,title,message) VALUES(?,?,?,?)',[t.assignee_id,'comment','New task comment',`${req.user.name} commented on “${t.title}”`]);res.status(201).json({success:true,id:r.insertId});});
+router.post('/tasks/:id/comments',auth,async(req,res)=>{
+  const taskId=Number(req.params.id);
+  const rawBody=req.body?.body;
+  if(!Number.isSafeInteger(taskId)||taskId<=0)return res.status(400).json({error:'Invalid task id'});
+  if(typeof rawBody!=='string')return res.status(400).json({error:'Comment body must be text'});
+  const body=rawBody.trim();
+  if(!body)return res.status(400).json({error:'Comment cannot be empty'});
+  if(body.length>5000)return res.status(400).json({error:'Comment must be 5000 characters or fewer'});
+  const [[t]]=await db.execute('SELECT project_id,title,assignee_id FROM tasks WHERE id=?',[taskId]);
+  if(!t)return res.status(404).json({error:'Task not found'});
+  const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[t.project_id,req.user.id]);
+  if(!membership.length)return res.status(403).json({error:'You are not a member of this project'});
+  const [r]=await db.execute('INSERT INTO comments(task_id,user_id,body) VALUES(?,?,?)',[taskId,req.user.id,body]);
+  await logActivity({projectId:t.project_id,taskId,userId:req.user.id,action:'comment.created',message:`${req.user.name} commented on “${t.title}”`});
+  if(t.assignee_id&&t.assignee_id!==req.user.id)await db.execute('INSERT INTO notifications(user_id,type,title,message) VALUES(?,?,?,?)',[t.assignee_id,'comment','New task comment',`${req.user.name} commented on “${t.title}”`]);
+  res.status(201).json({success:true,id:r.insertId});
+});
 module.exports=router;
