@@ -166,3 +166,17 @@ test('non-member cannot update another project task', async () => {
   const [rows] = await db.execute('SELECT status FROM tasks WHERE id=?', [createdBody.id]);
   assert.equal(rows[0].status, 'todo');
 });
+
+
+test('member role cannot delete a task', async () => {
+  const created = await api('/projects/101/tasks', memberToken, { title: 'Protected delete task' });
+  assert.equal(created.status, 201);
+  const createdBody = await created.json();
+  const response = await fetch(`${BASE}/tasks/${createdBody.id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${memberToken}` },
+  });
+  assert.equal(response.status, 403);
+  const [rows] = await db.execute('SELECT id FROM tasks WHERE id=?', [createdBody.id]);
+  assert.equal(rows.length, 1);
+});
