@@ -1,0 +1,22 @@
+{
+  "name": "teamkanban-nexus-free",
+  "version": "2.0.0",
+  "private": true,
+  "description": "TeamKanban enterprise workflow and project management platform",
+  "main": "backend/src/server.js",
+  "scripts": {
+    "start": "node backend/src/server.js",
+    "dev": "node --watch backend/src/server.js",
+    "check": "node --check backend/src/server.js && node --check backend/src/routes/api.js && node --check frontend/js/app.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.12.0",
+    "socket.io": "^4.8.1"
+  }
+}
