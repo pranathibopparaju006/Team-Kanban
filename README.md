@@ -1,57 +1,164 @@
-# TeamKanban — Enterprise Workflow & Project Operations Platform
+# TeamKanban — Team Workflow & Project Management Platform
 
-A major-project/internship-ready full-stack Kanban and project operations platform rebuilt from the original Project Workspace concept. The final architecture uses HTML5/CSS3/JavaScript, Node.js/Express REST APIs, Socket.IO for real-time events, MySQL 8, and a PHP integration layer for reports/activity/export.
+TeamKanban is a web-based project and task management application designed to help teams organize tasks, monitor progress, and manage workflows through a centralized workspace.
 
-## Core capabilities
-- Authentication with JWT + bcrypt
-- Role-based access control
-- Projects and project membership
-- Kanban workflow: To Do → In Progress → Review → Done
-- Drag-and-drop status changes
-- Task priorities, types, assignees and due dates
-- Activity/audit log
-- Comments and notifications schema/API
-- Dashboard metrics and team workload
-- Socket.IO real-time task updates
-- PHP reporting/activity/CSV export APIs
-- Prepared SQL statements and Helmet security headers
-- Responsive UI
+## Application Screenshots
 
-## Stack
-Frontend: HTML5, CSS3, Vanilla JS, Fetch API
-Backend: Node.js, Express.js, Socket.IO
-Database: MySQL 8 / MariaDB
-Integration: PHP 8+
-Security: JWT, bcrypt, prepared statements, Helmet, CORS
+### Dashboard
+![TeamKanban Dashboard](screenshots/dashboard.png)
 
-## Windows + XAMPP setup
-1. Install Node.js LTS and XAMPP (Apache + MySQL).
-2. Start MySQL in XAMPP.
-3. Open phpMyAdmin and import `database/schema.sql`, then `database/seed.sql`.
-4. Copy `.env.example` to `.env` and set your MySQL password if needed.
-5. Run `scripts/setup-windows.bat` once, or run `npm install` manually.
-6. Run `scripts/start.bat`.
-7. Open http://localhost:5000/login.html
+### My Tasks
+![My Tasks](screenshots/my-tasks.png)
 
-Demo login:
-Email: pranathi@teamkanban.local
-Password: password
+### Kanban Board
+![Kanban Board](screenshots/kanban-board.png)
 
-## PHP integration
-Copy the `php` folder into XAMPP's htdocs, for example:
-`C:\xampp\htdocs\teamkanban\php`
+### Recent Activity
+![Recent Activity](screenshots/recent-activity.png)
 
-Then reports can be called from:
-`http://localhost/teamkanban/php/api/reports.php?project_id=1`
-`http://localhost/teamkanban/php/api/activity.php?project_id=1`
-`http://localhost/teamkanban/php/api/export.php?project_id=1`
+## Key Features
 
-PHP reads the same MySQL database. For CLI/Apache environment variables, set DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD as appropriate.
+- Centralized dashboard for task tracking
+- Create and manage project tasks
+- Kanban workflow: To Do, In Progress, Review, and Done
+- Task priorities, descriptions, and due dates
+- Task search and filtering
+- User and project management interfaces
+- Recent activity tracking
+- Dashboard metrics and progress indicators
+- MySQL database integration
+- REST API-based backend
+- Responsive web interface
 
-## Architecture
-Browser → Node/Express REST API → MySQL
-Browser → Socket.IO → Node → project room events
-Browser/Reports → PHP integration API → MySQL
+## Technology Stack
 
-## Important
-The project is intentionally supplied as source code. A Windows `.exe` is not the correct deployment unit for a Node/PHP/MySQL web application. The included `.bat` launchers are the reliable local Windows entry points; if an installer/executable is required, package the Node service separately after configuring the target environment.
+| Component | Technologies |
+|---|---|
+| Frontend | HTML5, CSS3, JavaScript |
+| Backend | Node.js, Express.js |
+| Database | MySQL 8 |
+| API | REST APIs |
+| Additional integration | PHP APIs, Socket.IO |
+| Development tools | Git, GitHub, Docker |
+
+## System Architecture
+
+```text
+             User
+               |
+               v
+    Frontend (HTML, CSS, JavaScript)
+               |
+               v
+       Node.js + Express.js
+               |
+               v
+            REST APIs
+               |
+               v
+          MySQL Database
+```
+
+The frontend provides the user interface. The backend processes application requests and communicates with the MySQL database to store and retrieve project information.
+
+## Local Setup — Windows
+
+### Prerequisites
+
+- Node.js
+- Docker Desktop with MySQL, or a compatible MySQL 8 instance
+- Git
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/pranathibopparaju006/Team-Kanban.git
+cd Team-Kanban
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+Create a `.env` file using `.env.example` as a reference. Configure the database host, port, database name, username, and password for your local environment.
+
+Never commit `.env` files or real credentials to GitHub.
+
+### 4. Start MySQL
+
+If the `teamkanban-mysql` Docker container has already been created, start it with:
+
+```bash
+docker start teamkanban-mysql
+```
+
+Otherwise, configure a MySQL 8 instance and ensure the database settings match your `.env` file.
+
+### 5. Start the application
+
+```bash
+npm start
+```
+
+Open the application in your browser:
+
+**http://localhost:5000**
+
+Keep the terminal and database running while using the application.
+
+## Project Structure
+
+```text
+Team-Kanban/
+├── backend/
+│   └── src/
+├── frontend/
+│   ├── css/
+│   ├── js/
+│   ├── index.html
+│   └── login.html
+├── php/
+│   └── api/
+├── docs/
+├── scripts/
+├── screenshots/
+│   ├── dashboard.png
+│   ├── my-tasks.png
+│   ├── kanban-board.png
+│   └── recent-activity.png
+├── .env.example
+├── .gitignore
+├── package.json
+└── README.md
+```
+
+## Learning Outcomes
+
+- Understanding frontend and backend integration
+- Working with REST APIs
+- Configuring and connecting a MySQL database
+- Developing and testing a web application
+- Using Git and GitHub for version control
+- Troubleshooting local development environments
+
+## Future Enhancements
+
+- Advanced project analytics and reporting
+- Improved notifications and collaboration
+- Enhanced role-based permissions
+- Mobile-friendly improvements
+- Cloud deployment
+
+## Author
+
+**B. Sai Krishna Pranathi**
+
+GitHub: [pranathibopparaju006](https://github.com/pranathibopparaju006)
+
+---
+
+*Developed as part of an academic and internship project workflow.*
