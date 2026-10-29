@@ -55,8 +55,8 @@ router.patch('/tasks/:id',auth,async(req,res)=>{
   if(!sets.length)return res.status(400).json({error:'No fields to update'});
   if(Object.prototype.hasOwnProperty.call(body,'title')&&(typeof body.title!=='string'||!body.title.trim()||body.title.trim().length>255))return res.status(400).json({error:'Task title must be 1–255 characters'});
   if(Object.prototype.hasOwnProperty.call(body,'description')&&body.description!==null&&typeof body.description!=='string')return res.status(400).json({error:'Task description must be text'});
-  if(body.status&&!STATUSES.includes(body.status))return res.status(400).json({error:'Invalid status'});
-  if(body.priority&&!PRIORITIES.includes(body.priority))return res.status(400).json({error:'Invalid priority'});
+  if(Object.prototype.hasOwnProperty.call(body,'status')&&!STATUSES.includes(body.status))return res.status(400).json({error:'Invalid status'});
+  if(Object.prototype.hasOwnProperty.call(body,'priority')&&!PRIORITIES.includes(body.priority))return res.status(400).json({error:'Invalid priority'});
   if(Object.prototype.hasOwnProperty.call(body,'assignee_id')&&body.assignee_id!==null&&body.assignee_id!==''){
     const assigneeId=Number(body.assignee_id);
     if(!Number.isSafeInteger(assigneeId)||assigneeId<=0)return res.status(400).json({error:'Invalid assignee'});
