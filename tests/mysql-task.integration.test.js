@@ -239,3 +239,22 @@ test("invalid task priority update is rejected without changing the task", async
   const [rows] = await db.execute("SELECT priority FROM tasks WHERE id=?", [id]);
   assert.equal(rows[0].priority, "medium");
 });
+
+test('comment endpoint rejects invalid task ids before querying MySQL', async () => {
+  const response = await api('/tasks/not-a-number/comments', memberToken, { body: 'A valid comment' });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid task id' });
+});
+
+test('comment endpoint rejects non-text bodies without a server error', async () => {
+  const response = await api('/tasks/1/comments', memberToken, { body: 123 });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Comment body must be text' });
+});
+
+test('comment endpoint rejects oversized comments before querying MySQL', async () => {
+  const response = await api('/tasks/1/comments', memberToken, { body: 'x'.repeat(5001) });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Comment must be 5000 characters or fewer' });
+});
+
