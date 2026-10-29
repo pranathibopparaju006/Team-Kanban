@@ -96,10 +96,11 @@ Open [http://localhost:5000](http://localhost:5000) if that is the port configur
 ### Run the automated checks
 
 ```bash
+npm install --no-save --package-lock=false socket.io-client@4.8.1
 npm run check
 ```
 
-This checks JavaScript syntax for the server, authentication middleware, API routes, and frontend script. It is not a substitute for database-backed integration or end-to-end tests.
+The checks validate JavaScript syntax and run middleware unit tests plus live Socket.IO handshake and protected REST-route tests against a locally started server. These tests do not require a live MySQL query for the tested authentication paths. Full task/project workflows still need a configured test database and browser-based end-to-end tests.
 
 ## Project Structure
 
