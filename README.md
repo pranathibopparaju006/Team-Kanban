@@ -1,5 +1,6 @@
 # TeamKanban — Team Workflow & Project Management Platform
 
+[![GitHub Actions](https://github.com/pranathibopparaju006/Team-Kanban/actions/workflows/node-checks.yml/badge.svg)](https://github.com/pranathibopparaju006/Team-Kanban/actions/workflows/node-checks.yml)
 A full-stack web application for organizing projects, assigning tasks, and tracking work through a collaborative Kanban workflow.
 
 ## Screenshots
@@ -145,3 +146,4 @@ Team-Kanban/
 
 **B. Sai Krishna Pranathi**  
 GitHub: [pranathibopparaju006](https://github.com/pranathibopparaju006)
+
