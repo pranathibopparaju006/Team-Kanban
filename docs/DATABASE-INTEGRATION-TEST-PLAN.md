@@ -1,11 +1,17 @@
-# Database Integration Test Plan
+# Database Integration Tests
 
-The current automated suite checks authentication and Socket.IO handshake behavior. The following MySQL-backed cases should be added before calling project/task workflows verified:
+The MySQL-backed integration suite in `tests/mysql-task.integration.test.js` runs against a disposable MySQL 8 service in GitHub Actions.
 
-- A project member can create a task and the row persists.
-- A non-member receives HTTP 403 when creating a task in that project.
-- Invalid task titles return HTTP 400 and do not create rows.
-- A user cannot join a Socket.IO project room without membership.
-- Task update and deletion authorization are tested with separate member accounts.
+Covered cases:
+- A project member creates a task and the task row persists in MySQL.
+- A non-member receives HTTP 403 when trying to create a task in that project; no task row is written.
+- An invalid task title returns HTTP 400 without writing a row.
 
-Use a disposable MySQL 8 service in CI. Keep test credentials limited to the ephemeral CI service; never use production credentials. These cases are planned coverage until the tests are implemented and a workflow run passes.
+Workflow: [MySQL integration tests](../.github/workflows/mysql-integration.yml).
+
+Remaining coverage gaps:
+- Socket.IO project-room membership authorization.
+- Task update and delete authorization against the database.
+- Browser-based end-to-end testing of the full UI.
+
+CI database credentials are only for the disposable workflow service. Never reuse them in production.
