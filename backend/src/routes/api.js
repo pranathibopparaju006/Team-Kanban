@@ -13,8 +13,65 @@ router.post('/auth/login',async(req,res)=>{const {email,password}=req.body||{}; 
 router.get('/me',auth,(req,res)=>res.json({success:true,user:req.user}));
 router.get('/projects',auth,async(req,res)=>{const [rows]=await db.execute(`SELECT p.*,u.name owner_name,(SELECT COUNT(*) FROM tasks t WHERE t.project_id=p.id) task_count,(SELECT COUNT(*) FROM tasks t WHERE t.project_id=p.id AND t.status='done') done_count FROM projects p JOIN users u ON u.id=p.owner_id JOIN project_members pm ON pm.project_id=p.id AND pm.user_id=? ORDER BY p.updated_at DESC`,[req.user.id]);res.json({success:true,data:rows});});
 router.get('/projects/:id/tasks',auth,async(req,res)=>{const pid=Number(req.params.id); const [rows]=await db.execute(`SELECT t.*,a.name assignee_name,r.name reporter_name,COALESCE((SELECT COUNT(*) FROM subtasks s WHERE s.task_id=t.id),0) subtask_count,COALESCE((SELECT COUNT(*) FROM subtasks s WHERE s.task_id=t.id AND s.is_done=1),0) subtask_done FROM tasks t LEFT JOIN users a ON a.id=t.assignee_id JOIN users r ON r.id=t.reporter_id JOIN project_members pm ON pm.project_id=t.project_id AND pm.user_id=? WHERE t.project_id=? ORDER BY FIELD(t.priority,'critical','high','medium','low'),t.created_at DESC`,[req.user.id,pid]);res.json({success:true,data:rows});});
-router.post('/projects/:id/tasks',auth,async(req,res)=>{const pid=Number(req.params.id); const {title,description='',type='task',status='todo',priority='medium',assignee_id=null,due_date=null,estimate_hours=null}=req.body||{}; if(!title?.trim())return res.status(400).json({error:'Task title is required'}); if(!STATUSES.includes(status)||!PRIORITIES.includes(priority))return res.status(400).json({error:'Invalid status or priority'}); const [m]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[pid,req.user.id]); if(!m.length)return res.status(403).json({error:'You are not a member of this project'}); const [r]=await db.execute('INSERT INTO tasks(project_id,title,description,type,status,priority,assignee_id,reporter_id,due_date,estimate_hours) VALUES(?,?,?,?,?,?,?,?,?,?)',[pid,title.trim(),description,type,status,priority,assignee_id||null,req.user.id,due_date||null,estimate_hours||null]); await logActivity({projectId:pid,taskId:r.insertId,userId:req.user.id,action:'task.created',message:`${req.user.name} created task “${title.trim()}”`}); res.status(201).json({success:true,id:r.insertId});});
-router.patch('/tasks/:id',auth,async(req,res)=>{const id=Number(req.params.id); const [rows]=await db.execute('SELECT * FROM tasks WHERE id=?',[id]); if(!rows[0])return res.status(404).json({error:'Task not found'}); const old=rows[0]; const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[old.project_id,req.user.id]); if(!membership.length)return res.status(403).json({error:'You are not a member of this project'}); const fields=['title','description','type','status','priority','assignee_id','due_date','estimate_hours','actual_hours']; const sets=[]; const vals=[]; for(const f of fields){if(Object.prototype.hasOwnProperty.call(req.body,f)){sets.push(`${f}=?`);vals.push(req.body[f]??null);}} if(!sets.length)return res.status(400).json({error:'No fields to update'}); if(req.body.status&&!STATUSES.includes(req.body.status))return res.status(400).json({error:'Invalid status'}); if(req.body.priority&&!PRIORITIES.includes(req.body.priority))return res.status(400).json({error:'Invalid priority'}); vals.push(id); await db.execute(`UPDATE tasks SET ${sets.join(',')} WHERE id=?`,vals); const newStatus=req.body.status; const msg=newStatus&&newStatus!==old.status?`${req.user.name} moved “${old.title}” from ${old.status} to ${newStatus}`:`${req.user.name} updated “${old.title}”`; await logActivity({projectId:old.project_id,taskId:id,userId:req.user.id,action:newStatus&&newStatus!==old.status?'task.status_changed':'task.updated',message:msg}); req.app.get('io').to(`project:${old.project_id}`).emit('task:updated',{taskId:id,changes:req.body}); res.json({success:true});});
+router.post('/projects/:id/tasks',auth,async(req,res)=>{
+  const pid=Number(req.params.id);
+  const body=req.body && typeof req.body==='object' && !Array.isArray(req.body) ? req.body : {};
+  const {title,description='',type='task',status='todo',priority='medium',assignee_id=null,due_date=null,estimate_hours=null}=body;
+  if(!Number.isSafeInteger(pid)||pid<=0)return res.status(400).json({error:'Invalid project id'});
+  if(typeof title!=='string'||!title.trim())return res.status(400).json({error:'Task title is required'});
+  if(title.trim().length>255)return res.status(400).json({error:'Task title must be 255 characters or fewer'});
+  if(typeof description!=='string')return res.status(400).json({error:'Task description must be text'});
+  if(!STATUSES.includes(status)||!PRIORITIES.includes(priority))return res.status(400).json({error:'Invalid status or priority'});
+  if(assignee_id!==null&&assignee_id!=='' ){
+    const assigneeId=Number(assignee_id);
+    if(!Number.isSafeInteger(assigneeId)||assigneeId<=0)return res.status(400).json({error:'Invalid assignee'});
+    const [assigneeMembership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[pid,assigneeId]);
+    if(!assigneeMembership.length)return res.status(400).json({error:'Assignee must be a member of this project'});
+  }
+  const [m]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[pid,req.user.id]);
+  if(!m.length)return res.status(403).json({error:'You are not a member of this project'});
+  const [r]=await db.execute('INSERT INTO tasks(project_id,title,description,type,status,priority,assignee_id,reporter_id,due_date,estimate_hours) VALUES(?,?,?,?,?,?,?,?,?,?)',[pid,title.trim(),description,type,status,priority,assignee_id||null,req.user.id,due_date||null,estimate_hours||null]);
+  await logActivity({projectId:pid,taskId:r.insertId,userId:req.user.id,action:'task.created',message:`${req.user.name} created task “${title.trim()}”`});
+  res.status(201).json({success:true,id:r.insertId});
+});
+router.patch('/tasks/:id',auth,async(req,res)=>{
+  const id=Number(req.params.id);
+  const body=req.body && typeof req.body==='object' && !Array.isArray(req.body) ? req.body : {};
+  if(!Number.isSafeInteger(id)||id<=0)return res.status(400).json({error:'Invalid task id'});
+  const [rows]=await db.execute('SELECT * FROM tasks WHERE id=?',[id]);
+  if(!rows[0])return res.status(404).json({error:'Task not found'});
+  const old=rows[0];
+  const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[old.project_id,req.user.id]);
+  if(!membership.length)return res.status(403).json({error:'You are not a member of this project'});
+  const fields=['title','description','type','status','priority','assignee_id','due_date','estimate_hours','actual_hours'];
+  const sets=[];
+  const vals=[];
+  for(const field of fields){
+    if(Object.prototype.hasOwnProperty.call(body,field)){
+      sets.push(`${field}=?`);
+      vals.push(body[field]??null);
+    }
+  }
+  if(!sets.length)return res.status(400).json({error:'No fields to update'});
+  if(Object.prototype.hasOwnProperty.call(body,'title')&&(typeof body.title!=='string'||!body.title.trim()||body.title.trim().length>255))return res.status(400).json({error:'Task title must be 1–255 characters'});
+  if(Object.prototype.hasOwnProperty.call(body,'description')&&body.description!==null&&typeof body.description!=='string')return res.status(400).json({error:'Task description must be text'});
+  if(body.status&&!STATUSES.includes(body.status))return res.status(400).json({error:'Invalid status'});
+  if(body.priority&&!PRIORITIES.includes(body.priority))return res.status(400).json({error:'Invalid priority'});
+  if(Object.prototype.hasOwnProperty.call(body,'assignee_id')&&body.assignee_id!==null&&body.assignee_id!==''){
+    const assigneeId=Number(body.assignee_id);
+    if(!Number.isSafeInteger(assigneeId)||assigneeId<=0)return res.status(400).json({error:'Invalid assignee'});
+    const [assigneeMembership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[old.project_id,assigneeId]);
+    if(!assigneeMembership.length)return res.status(400).json({error:'Assignee must be a member of this project'});
+  }
+  if(Object.prototype.hasOwnProperty.call(body,'title'))vals[fields.indexOf('title')>=0?sets.indexOf('title=?'):-1]=body.title.trim();
+  vals.push(id);
+  await db.execute(`UPDATE tasks SET ${sets.join(',')} WHERE id=?`,vals);
+  const newStatus=body.status;
+  const msg=newStatus&&newStatus!==old.status?`${req.user.name} moved “${old.title}” from ${old.status} to ${newStatus}`:`${req.user.name} updated “${old.title}”`;
+  await logActivity({projectId:old.project_id,taskId:id,userId:req.user.id,action:newStatus&&newStatus!==old.status?'task.status_changed':'task.updated',message:msg});
+  req.app.get('io').to(`project:${old.project_id}`).emit('task:updated',{taskId:id,changes:body});
+  res.json({success:true});
+});
 router.delete('/tasks/:id',auth,roles('admin','manager','lead'),async(req,res)=>{const id=Number(req.params.id);const [rows]=await db.execute('SELECT * FROM tasks WHERE id=?',[id]);if(!rows[0])return res.status(404).json({error:'Task not found'});const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[rows[0].project_id,req.user.id]);if(!membership.length)return res.status(403).json({error:'You are not a member of this project'});await db.execute('DELETE FROM tasks WHERE id=?',[id]);await logActivity({projectId:rows[0].project_id,taskId:null,userId:req.user.id,action:'task.deleted',message:`${req.user.name} deleted “${rows[0].title}”`});res.json({success:true});});
 router.get('/projects/:id/activity',auth,async(req,res)=>{const pid=Number(req.params.id); const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[pid,req.user.id]); if(!membership.length)return res.status(403).json({error:'You are not a member of this project'}); const [rows]=await db.execute(`SELECT a.*,u.name user_name FROM activity_logs a LEFT JOIN users u ON u.id=a.user_id WHERE a.project_id=? ORDER BY a.created_at DESC LIMIT 25`,[Number(req.params.id)]);res.json({success:true,data:rows});});
 router.get('/projects/:id/analytics',auth,async(req,res)=>{const pid=Number(req.params.id); const [membership]=await db.execute('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?',[pid,req.user.id]); if(!membership.length)return res.status(403).json({error:'You are not a member of this project'}); const [[totals]]=await db.execute(`SELECT COUNT(*) total,SUM(status='done') done,SUM(status='in_progress') in_progress,SUM(status='todo') todo,SUM(status='blocked') blocked,SUM(priority='critical') critical,SUM(priority='high') high FROM tasks WHERE project_id=?`,[pid]);const [members]=await db.execute(`SELECT u.name,COUNT(t.id) total,SUM(t.status='done') done FROM project_members pm JOIN users u ON u.id=pm.user_id LEFT JOIN tasks t ON t.assignee_id=u.id AND t.project_id=pm.project_id WHERE pm.project_id=? GROUP BY u.id ORDER BY done DESC,total DESC`,[pid]);res.json({success:true,data:{totals,members}});});
