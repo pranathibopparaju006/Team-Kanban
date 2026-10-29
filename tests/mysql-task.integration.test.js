@@ -210,3 +210,32 @@ test('task title longer than 255 characters is rejected without database writes'
   const [rows] = await db.execute('SELECT id FROM tasks WHERE title=?', [title]);
   assert.equal(rows.length, 0);
 });
+
+
+test("invalid task status update is rejected without changing the task", async () => {
+  const created = await api("/projects/101/tasks", memberToken, { title: "Status validation task" });
+  assert.equal(created.status, 201);
+  const { id } = await created.json();
+  const response = await fetch(`${BASE}/tasks/${id}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${memberToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "" }),
+  });
+  assert.equal(response.status, 400);
+  const [rows] = await db.execute("SELECT status FROM tasks WHERE id=?", [id]);
+  assert.equal(rows[0].status, "todo");
+});
+
+test("invalid task priority update is rejected without changing the task", async () => {
+  const created = await api("/projects/101/tasks", memberToken, { title: "Priority validation task" });
+  assert.equal(created.status, 201);
+  const { id } = await created.json();
+  const response = await fetch(`${BASE}/tasks/${id}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${memberToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ priority: "" }),
+  });
+  assert.equal(response.status, 400);
+  const [rows] = await db.execute("SELECT priority FROM tasks WHERE id=?", [id]);
+  assert.equal(rows[0].priority, "medium");
+});
