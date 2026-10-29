@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
-    "check": "node --check backend/src/server.js && node --check backend/src/middleware/auth.js && node --check backend/src/routes/api.js && node --check frontend/js/app.js"
+    "check": "node --check backend/src/server.js && node --check backend/src/middleware/auth.js && node --check backend/src/routes/api.js && node --check frontend/js/app.js && node --test tests/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
