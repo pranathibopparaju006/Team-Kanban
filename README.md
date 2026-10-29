@@ -1,4 +1,4 @@
-# TeamKanban — Team Workflow & Project Management Platform
+﻿# TeamKanban â€” Team Workflow & Project Management Platform
 
 TeamKanban is a web-based project and task management application designed to help teams organize tasks, monitor progress, and manage workflows through a centralized workspace.
 
@@ -61,7 +61,7 @@ TeamKanban is a web-based project and task management application designed to he
 
 The frontend provides the user interface. The backend processes application requests and communicates with the MySQL database to store and retrieve project information.
 
-## Local Setup — Windows
+## Local Setup â€” Windows
 
 ### Prerequisites
 
@@ -114,26 +114,26 @@ Keep the terminal and database running while using the application.
 
 ```text
 Team-Kanban/
-├── backend/
-│   └── src/
-├── frontend/
-│   ├── css/
-│   ├── js/
-│   ├── index.html
-│   └── login.html
-├── php/
-│   └── api/
-├── docs/
-├── scripts/
-├── screenshots/
-│   ├── dashboard.png
-│   ├── my-tasks.png
-│   ├── kanban-board.png
-│   └── recent-activity.png
-├── .env.example
-├── .gitignore
-├── package.json
-└── README.md
+â”œâ”€â”€ backend/
+â”‚   â””â”€â”€ src/
+â”œâ”€â”€ frontend/
+â”‚   â”œâ”€â”€ css/
+â”‚   â”œâ”€â”€ js/
+â”‚   â”œâ”€â”€ index.html
+â”‚   â””â”€â”€ login.html
+â”œâ”€â”€ php/
+â”‚   â””â”€â”€ api/
+â”œâ”€â”€ docs/
+â”œâ”€â”€ scripts/
+â”œâ”€â”€ screenshots/
+â”‚   â”œâ”€â”€ dashboard.png
+â”‚   â”œâ”€â”€ my-tasks.png
+â”‚   â”œâ”€â”€ kanban-board.png
+â”‚   â””â”€â”€ recent-activity.png
+â”œâ”€â”€ .env.example
+â”œâ”€â”€ .gitignore
+â”œâ”€â”€ package.json
+â””â”€â”€ README.md
 ```
 
 ## Learning Outcomes
