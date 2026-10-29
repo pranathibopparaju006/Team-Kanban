@@ -1,8 +1,8 @@
-﻿# TeamKanban â€” Team Workflow & Project Management Platform
+# TeamKanban — Team Workflow & Project Management Platform
 
-TeamKanban is a web-based project and task management application designed to help teams organize tasks, monitor progress, and manage workflows through a centralized workspace.
+A full-stack web application for organizing projects, assigning tasks, and tracking work through a collaborative Kanban workflow.
 
-## Application Screenshots
+## Screenshots
 
 ### Dashboard
 ![TeamKanban Dashboard](screenshots/dashboard.png)
@@ -16,57 +16,52 @@ TeamKanban is a web-based project and task management application designed to he
 ### Recent Activity
 ![Recent Activity](screenshots/recent-activity.png)
 
-## Key Features
+## Features
 
-- Centralized dashboard for task tracking
-- Create and manage project tasks
+- Project and task management with role-based access
 - Kanban workflow: To Do, In Progress, Review, and Done
 - Task priorities, descriptions, and due dates
-- Task search and filtering
-- User and project management interfaces
-- Recent activity tracking
-- Dashboard metrics and progress indicators
-- MySQL database integration
-- REST API-based backend
-- Responsive web interface
+- Task search, filtering, and personal task views
+- Dashboard metrics and recent activity
+- REST API backed by MySQL
+- JWT-based authentication
+- Socket.IO integration for real-time events
+- Responsive HTML, CSS, and JavaScript interface
+- Automated Node.js syntax checks through GitHub Actions
 
 ## Technology Stack
 
-| Component | Technologies |
+| Layer | Technology |
 |---|---|
-| Frontend | HTML5, CSS3, JavaScript |
+| Frontend | HTML5, CSS3, vanilla JavaScript |
 | Backend | Node.js, Express.js |
 | Database | MySQL 8 |
-| API | REST APIs |
-| Additional integration | PHP APIs, Socket.IO |
-| Development tools | Git, GitHub, Docker |
+| Authentication | JSON Web Tokens (JWT), bcryptjs |
+| Real-time events | Socket.IO |
+| Security middleware | Helmet |
+| Quality checks | Node.js `--check`, GitHub Actions |
 
-## System Architecture
+## Architecture
 
 ```text
-             User
-               |
-               v
-    Frontend (HTML, CSS, JavaScript)
-               |
-               v
-       Node.js + Express.js
-               |
-               v
-            REST APIs
-               |
-               v
-          MySQL Database
+Browser UI (HTML/CSS/JavaScript)
+            |
+            v
+    Express REST API
+      |          |
+      v          v
+   MySQL     JWT / Roles
+      |
+      v
+Project, task, user and activity data
 ```
 
-The frontend provides the user interface. The backend processes application requests and communicates with the MySQL database to store and retrieve project information.
-
-## Local Setup â€” Windows
+## Run Locally
 
 ### Prerequisites
 
-- Node.js
-- Docker Desktop with MySQL, or a compatible MySQL 8 instance
+- Node.js 20 or a compatible supported version
+- MySQL 8
 - Git
 
 ### 1. Clone the repository
@@ -84,19 +79,11 @@ npm install
 
 ### 3. Configure environment variables
 
-Create a `.env` file using `.env.example` as a reference. Configure the database host, port, database name, username, and password for your local environment.
-
-Never commit `.env` files or real credentials to GitHub.
+Copy `.env.example` to `.env` and set the values for your local database and authentication secret. Use a unique, strong JWT secret; do not commit `.env` or real credentials.
 
 ### 4. Start MySQL
 
-If the `teamkanban-mysql` Docker container has already been created, start it with:
-
-```bash
-docker start teamkanban-mysql
-```
-
-Otherwise, configure a MySQL 8 instance and ensure the database settings match your `.env` file.
+Start your local MySQL 8 service and ensure the database and credentials match your `.env` configuration. If your setup uses a pre-created Docker database container, start that container instead.
 
 ### 5. Start the application
 
@@ -104,61 +91,56 @@ Otherwise, configure a MySQL 8 instance and ensure the database settings match y
 npm start
 ```
 
-Open the application in your browser:
+Open [http://localhost:5000](http://localhost:5000) if that is the port configured by your server.
 
-**http://localhost:5000**
+### Run the automated checks
 
-Keep the terminal and database running while using the application.
+```bash
+npm run check
+```
+
+This checks JavaScript syntax for the server, authentication middleware, API routes, and frontend script. It is not a substitute for database-backed integration or end-to-end tests.
 
 ## Project Structure
 
 ```text
 Team-Kanban/
-â”œâ”€â”€ backend/
-â”‚   â””â”€â”€ src/
-â”œâ”€â”€ frontend/
-â”‚   â”œâ”€â”€ css/
-â”‚   â”œâ”€â”€ js/
-â”‚   â”œâ”€â”€ index.html
-â”‚   â””â”€â”€ login.html
-â”œâ”€â”€ php/
-â”‚   â””â”€â”€ api/
-â”œâ”€â”€ docs/
-â”œâ”€â”€ scripts/
-â”œâ”€â”€ screenshots/
-â”‚   â”œâ”€â”€ dashboard.png
-â”‚   â”œâ”€â”€ my-tasks.png
-â”‚   â”œâ”€â”€ kanban-board.png
-â”‚   â””â”€â”€ recent-activity.png
-â”œâ”€â”€ .env.example
-â”œâ”€â”€ .gitignore
-â”œâ”€â”€ package.json
-â””â”€â”€ README.md
+├── backend/
+│   └── src/
+│       ├── middleware/
+│       ├── routes/
+│       └── server.js
+├── frontend/
+│   ├── css/
+│   ├── js/
+│   ├── index.html
+│   └── login.html
+├── php/
+│   └── api/
+├── docs/
+├── scripts/
+├── screenshots/
+├── .env.example
+├── .github/workflows/
+├── package.json
+└── README.md
 ```
 
-## Learning Outcomes
+## Security Notes
 
-- Understanding frontend and backend integration
-- Working with REST APIs
-- Configuring and connecting a MySQL database
-- Developing and testing a web application
-- Using Git and GitHub for version control
-- Troubleshooting local development environments
+- Keep environment files and credentials out of version control.
+- Use a strong, unique JWT secret in production.
+- API routes enforce authentication and role checks; project membership is checked for relevant task operations.
+- Automated checks currently validate syntax. Run functional tests against a configured test database before production use.
 
-## Future Enhancements
+## Future Improvements
 
-- Advanced project analytics and reporting
-- Improved notifications and collaboration
-- Enhanced role-based permissions
-- Mobile-friendly improvements
-- Cloud deployment
+- Add automated API integration tests with a disposable test database
+- Add end-to-end tests for login, project membership, and task workflows
+- Add deployment configuration and operational monitoring
+- Improve accessibility and mobile usability
 
 ## Author
 
-**B. Sai Krishna Pranathi**
-
+**B. Sai Krishna Pranathi**  
 GitHub: [pranathibopparaju006](https://github.com/pranathibopparaju006)
-
----
-
-*Developed as part of an academic and internship project workflow.*
